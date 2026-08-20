@@ -23,7 +23,7 @@ export default function Login() {
       setError('Credenciales incorrectas. Intenta de nuevo.')
       setLoading(false)
     } else {
-      navigate('/')
+      navigate('/dashboard')
     }
   }
 

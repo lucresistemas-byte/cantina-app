@@ -9,9 +9,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {/* Ahora el Login es la página principal */}
+        <Route path="/" element={<Login />} /> 
         <Route path="/registro" element={<Registro />} />
-        <Route path="/" element={<Dashboard />} />
+        
+        {/* Movemos el Dashboard a su propia ruta */}
+        <Route path="/dashboard" element={<Dashboard />} /> 
         <Route path="/productos" element={<Productos />} />
         <Route path="/nuevo-producto" element={<NuevoProducto />} />
       </Routes>
