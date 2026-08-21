@@ -11,7 +11,10 @@ export default function Dashboard() {
   const [mostrarSelector, setMostrarSelector] = useState(false)
   const [userName, setUserName] = useState('') 
   
-  // Pestañas dinámicas
+  // Estados para el Modal de Compartir Menú y QR
+  const [showQRModal, setShowQRModal] = useState(false)
+  const [copiado, setCopiado] = useState(false)
+  
   const [categoriaActiva, setCategoriaActiva] = useState('todos')
   
   const [carrito, setCarrito] = useState([])
@@ -44,7 +47,7 @@ export default function Dashboard() {
       setCarrito([]) 
       setIsCartOpen(false)
       setMensajeExito(null)
-      setCategoriaActiva('todos') // Reiniciamos a 'todos' al cambiar de cantina
+      setCategoriaActiva('todos')
     }
   }, [cantinaSeleccionada])
 
@@ -61,7 +64,6 @@ export default function Dashboard() {
   const fetchProductos = async (idCantina) => {
     const { data, error } = await supabase.rpc('obtener_productos_cantina', { p_id_cantina: idCantina })
     if (!error && data) {
-      // ORDEN ALFABÉTICO (A - Z)
       const productosOrdenados = data.sort((a, b) => 
         a.nombre_producto.localeCompare(b.nombre_producto, 'es', { sensitivity: 'base' })
       )
@@ -69,8 +71,6 @@ export default function Dashboard() {
     }
   }
 
-  // --- LÓGICA DE CATEGORÍAS DINÁMICAS ---
-  // 1. Definimos las categorías posibles con su nombre amigable
   const mapaCategorias = {
     'dulce': 'Dulce',
     'salado': 'Salado',
@@ -78,12 +78,10 @@ export default function Dashboard() {
     'sin categoria': 'Otros'
   }
 
-  // 2. Calculamos qué categorías tienen al menos un producto cargado
   const categoriasDisponibles = Object.keys(mapaCategorias).filter(catKey => 
     productos.some(prod => (prod.categoria || 'sin categoria') === catKey)
   )
 
-  // 3. Filtrar productos según la pestaña activa
   const productosFiltrados = productos.filter(prod => {
     const catProd = prod.categoria || 'sin categoria'
     if (categoriaActiva === 'todos') return true
@@ -153,6 +151,17 @@ export default function Dashboard() {
     setTimeout(() => setMensajeExito(null), 4000)
   }
 
+  // Generamos el link público basado en el ID de la cantina actual
+  const urlPublica = cantinaSeleccionada 
+    ? `${window.location.origin}/menu/${cantinaSeleccionada.id_cantina}`
+    : ''
+
+  const copiarEnPortapapeles = () => {
+    navigator.clipboard.writeText(urlPublica)
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2500)
+  }
+
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col font-sans relative overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
@@ -173,21 +182,37 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="relative text-right flex-1 ml-4">
-          <button onClick={() => setMostrarSelector(!mostrarSelector)} className="flex flex-col items-end text-right w-full focus:outline-none active:opacity-70 transition-opacity">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-brand-text leading-none tracking-tight break-words" style={{ wordBreak: 'break-word' }}>
+        {/* BOTÓN PARA COMPARTIR QR / MENÚ PÚBLICO */}
+        {cantinaSeleccionada && (
+          <button 
+            onClick={() => setShowQRModal(true)}
+            className="p-3 rounded-2xl bg-brand-surface shadow-soft text-brand-secondary hover:bg-brand-secondary/10 active:scale-95 transition-all flex items-center gap-2"
+            title="Ver QR del Menú"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+          </button>
+        )}
+      </header>
+
+      {/* Selector de Negocio */}
+      <div className="px-6 mb-4 relative z-10">
+        <div className="relative text-center">
+          <button onClick={() => setMostrarSelector(!mostrarSelector)} className="flex flex-col items-center text-center w-full focus:outline-none active:opacity-70 transition-opacity">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-brand-text leading-none tracking-tight break-words">
               {loading ? '...' : cantinaSeleccionada?.nombre_cantina || 'Sin cantina'}
             </h1>
             {!loading && cantinas.length > 1 && (
-              <div className="flex items-center gap-1 text-brand-secondary font-bold mt-1 bg-brand-secondary/10 px-2 py-0.5 rounded-full text-xs">
-                <span>Cambiar</span>
+              <div className="flex items-center gap-1 text-brand-secondary font-bold mt-1 bg-brand-secondary/10 px-3 py-0.5 rounded-full text-xs mx-auto">
+                <span>Cambiar negocio</span>
                 <svg className={`w-3 h-3 transition-transform ${mostrarSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
               </div>
             )}
           </button>
 
           {mostrarSelector && (
-            <div className="absolute right-0 top-full mt-4 w-56 bg-brand-surface rounded-2xl shadow-2xl border border-brand-bg overflow-hidden animate-in fade-in slide-in-from-top-2 text-left z-30">
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-4 w-64 bg-brand-surface rounded-2xl shadow-2xl border border-brand-bg overflow-hidden animate-in fade-in slide-in-from-top-2 text-left z-30">
               <div className="p-3 bg-brand-bg/50 text-xs font-bold text-brand-muted uppercase tracking-wider">Tus negocios</div>
               {cantinas.map((cantina) => (
                 <div key={cantina.id_cantina} onClick={() => { setCantinaSeleccionada(cantina); setMostrarSelector(false); }} className={`p-4 cursor-pointer transition-colors flex items-center justify-between ${cantinaSeleccionada?.id_cantina === cantina.id_cantina ? 'bg-brand-primary/10 font-bold text-brand-primary' : 'text-brand-text hover:bg-brand-bg'}`}>
@@ -198,15 +223,14 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      </header>
+      </div>
 
       <main className="flex-1 px-6 pb-28 space-y-4 overflow-y-auto z-0 relative">
         <div className="flex justify-between items-center mb-1">
           <h2 className="text-xs font-bold text-brand-muted uppercase tracking-wider">Punto de Venta</h2>
         </div>
 
-        {/* PESTAÑAS DINÁMICAS (Solo se muestran si tienen productos) */}
-        {!loading && productos.length > 0 && (
+        {!loading && productos.length > 0 && categoriasDisponibles.length > 0 && (
           <div className="flex bg-brand-surface p-1.5 rounded-2xl shadow-soft gap-1 overflow-x-auto">
             <button 
               onClick={() => setCategoriaActiva('todos')} 
@@ -254,7 +278,7 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* CARRITO Y MODALES */}
+      {/* CARRITO */}
       {isCartOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity" onClick={() => setIsCartOpen(false)} />}
       <div className={`fixed bottom-0 left-0 w-full bg-brand-surface rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 flex flex-col transition-all duration-300 ease-in-out border-t border-brand-bg ${isCartOpen ? 'h-[75vh]' : 'h-auto'}`}>
         <div onClick={() => { if (carrito.length > 0) setIsCartOpen(!isCartOpen) }} className="p-6 px-8 cursor-pointer flex flex-col items-center shrink-0">
@@ -301,6 +325,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* MODAL DE PAGO */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-center flex flex-col items-center">
@@ -323,6 +348,44 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* NUEVO: MODAL DE CÓDIGO QR Y LINK PÚBLICO */}
+      {showQRModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-center flex flex-col items-center">
+            <h3 className="text-2xl font-extrabold text-brand-text mb-1">Menú Público y QR</h3>
+            <p className="text-brand-muted text-xs mb-4">Escanea o comparte para que tus clientes vean los precios</p>
+
+            {/* Imagen del Código QR generada al instante */}
+            <div className="bg-white p-4 rounded-2xl shadow-inner mb-4 border border-brand-bg">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(urlPublica)}`} 
+                alt="QR del Menú" 
+                className="mx-auto rounded-lg"
+              />
+            </div>
+
+            {/* Link copiable */}
+            <div className="w-full bg-brand-bg p-3 rounded-2xl flex items-center justify-between gap-2 mb-4">
+              <span className="text-xs text-brand-muted truncate font-medium">{urlPublica}</span>
+              <button 
+                onClick={copiarEnPortapapeles}
+                className="bg-brand-primary text-white text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform shrink-0"
+              >
+                {copiado ? '¡Copiado!' : 'Copiar'}
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setShowQRModal(false)} 
+              className="w-full bg-brand-secondary text-white font-bold py-3 rounded-2xl active:scale-95 transition-transform shadow-md"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
