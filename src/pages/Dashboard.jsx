@@ -163,7 +163,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col font-sans relative overflow-hidden">
+    <div className="h-[100dvh] w-full bg-brand-bg flex flex-col font-sans relative overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       <header className="flex justify-between items-center p-6 pt-4 relative z-10">

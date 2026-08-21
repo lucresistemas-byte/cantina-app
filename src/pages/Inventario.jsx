@@ -163,7 +163,7 @@ export default function Inventario() {
   const esAdmin = cantinaSeleccionada?.rol === 'creador' || cantinaSeleccionada?.rol === 'administrador'
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col font-sans relative">
+    <div className="h-[100dvh] w-full bg-brand-bg flex flex-col font-sans relative overflow-hidden">
       <header className="flex items-center p-6 pt-10 gap-4 relative z-10 bg-brand-bg/90 backdrop-blur-md">
         <button onClick={handleBack} className="p-2 rounded-full bg-brand-surface shadow-soft text-brand-text active:scale-90 transition-transform">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -177,7 +177,7 @@ export default function Inventario() {
         </div>
       </header>
 
-      <main className="flex-1 px-6 pb-24 space-y-6">
+      <main className="flex-1 px-6 pb-24 space-y-6 overflow-y-auto relative z-0">
         {error && <div className="bg-red-100 text-red-600 p-4 rounded-2xl text-sm font-bold text-center shadow-sm">{error}</div>}
         {exito && <div className="bg-green-100 text-green-700 p-4 rounded-2xl text-sm font-bold text-center shadow-sm mb-4 animate-in fade-in">{exito}</div>}
 
