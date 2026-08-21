@@ -1,8 +1,28 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate()
+  const [userName, setUserName] = useState('')
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const nombreReal = user.user_metadata?.full_name || 
+                           user.user_metadata?.nombre || 
+                           user.user_metadata?.name || 
+                           'Usuario'
+        setUserName(nombreReal)
+      }
+    }
+    
+    // Solo buscamos el usuario si el menú se abre (optimización)
+    if (isOpen) {
+      fetchUser()
+    }
+  }, [isOpen])
 
   const handleCerrarSesion = async () => {
     await supabase.auth.signOut()
@@ -21,12 +41,19 @@ export default function Sidebar({ isOpen, onClose }) {
 
       {/* Contenedor del Menú (Aparece desde la izquierda) */}
       <div className="relative w-72 bg-brand-surface h-full shadow-2xl flex flex-col p-6 z-[80] justify-between animate-in slide-in-from-left duration-200">
-
+        
         {/* Parte Superior: Título y Opciones */}
         <div>
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-bold text-brand-primary">Menú</h2>
-            <button
+          <div className="flex justify-between items-start mb-8">
+            <div className="flex flex-col">
+              {/* ACÁ AGREGAMOS EL NOMBRE DEL USUARIO */}
+              <span className="text-sm font-bold text-brand-text mb-1 truncate max-w-[160px]">
+                {userName || 'Cargando...'}
+              </span>
+              <h2 className="text-2xl font-extrabold text-brand-primary leading-none">Menú</h2>
+            </div>
+            
+            <button 
               onClick={onClose}
               className="p-2 rounded-full bg-brand-bg text-brand-text active:scale-90 transition-transform"
             >
@@ -37,7 +64,7 @@ export default function Sidebar({ isOpen, onClose }) {
           </div>
 
           <nav className="space-y-3">
-            <button
+            <button 
               onClick={() => { navigate('/dashboard'); onClose(); }}
               className="w-full text-left p-4 rounded-2xl bg-brand-bg hover:bg-brand-primary/10 font-semibold text-brand-text transition-colors flex items-center gap-3"
             >
@@ -47,7 +74,7 @@ export default function Sidebar({ isOpen, onClose }) {
               Punto de Venta
             </button>
 
-            <button
+            <button 
               onClick={() => { navigate('/inventario'); onClose(); }}
               className="w-full text-left p-4 rounded-2xl bg-brand-bg hover:bg-brand-primary/10 font-semibold text-brand-text transition-colors flex items-center gap-3"
             >
@@ -57,7 +84,7 @@ export default function Sidebar({ isOpen, onClose }) {
               Inventario
             </button>
 
-            <button
+            <button 
               onClick={() => { navigate('/gestion'); onClose(); }}
               className="w-full text-left p-4 rounded-2xl bg-brand-bg hover:bg-brand-primary/10 font-semibold text-brand-text transition-colors flex items-center gap-3"
             >
@@ -66,7 +93,8 @@ export default function Sidebar({ isOpen, onClose }) {
               </svg>
               Gestión de Cantinas
             </button>
-            <button
+
+            <button 
               onClick={() => { navigate('/historial'); onClose(); }}
               className="w-full text-left p-4 rounded-2xl bg-brand-bg hover:bg-brand-primary/10 font-semibold text-brand-text transition-colors flex items-center gap-3"
             >
@@ -80,7 +108,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
         {/* Parte Inferior: Cerrar Sesión */}
         <div className="pt-4 border-t border-brand-bg">
-          <button
+          <button 
             onClick={handleCerrarSesion}
             className="w-full text-left p-4 rounded-2xl bg-red-50 hover:bg-red-100 font-semibold text-red-500 transition-colors flex items-center gap-3"
           >
