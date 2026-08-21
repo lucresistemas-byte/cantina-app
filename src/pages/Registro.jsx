@@ -9,7 +9,10 @@ export default function Registro() {
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
   const [userName, setUserName] = useState('')
+  
+  // Estados para manejar los mensajes y la carga
   const [error, setError] = useState(null)
+  const [exito, setExito] = useState(null)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -17,31 +20,33 @@ export default function Registro() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setExito(null)
 
-    // Armamos el JSON exactamente como lo requiere el backend
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data, error: authError } = await supabase.auth.signUp({
       email: email,
       password: password,
       options: {
         data: {
-          user_name: userName,
           nombre: nombre,
-          apellido: apellido
+          apellido: apellido,
+          user_name: userName
         }
       }
     })
 
     if (authError) {
-      setError(authError.message)
+      setError(`Error al registrar: ${authError.message}`)
       setLoading(false)
       return
     }
 
-    // Como el backend de Juampi se encarga de interceptar esos "data" e insertarlos
-    // en la tabla 'usuario', nosotros ya terminamos nuestro trabajo acá.
+    // Mostramos el mensaje de éxito
+    setExito('¡Cuenta creada con éxito! Redirigiendo...')
     
-    // Navegamos directamente al Login
-    navigate('/')
+    // Esperamos 3 segundos (3000 ms) y luego navegamos al login
+    setTimeout(() => {
+      navigate('/')
+    }, 3000)
   }
 
   return (
@@ -54,9 +59,17 @@ export default function Registro() {
 
       <form onSubmit={handleRegistro} className="bg-brand-surface p-8 rounded-3xl shadow-soft space-y-5">
         
+        {/* Cartel de Error */}
         {error && (
-          <div className="bg-red-100 text-red-600 p-3 rounded-xl text-sm font-semibold text-center">
+          <div className="bg-red-100 text-red-600 p-3 rounded-xl text-sm font-semibold text-center animate-in fade-in">
             {error}
+          </div>
+        )}
+
+        {/* NUEVO: Cartel de Éxito */}
+        {exito && (
+          <div className="bg-green-100 text-green-700 p-3 rounded-xl text-sm font-semibold text-center animate-in fade-in">
+            {exito}
           </div>
         )}
 
@@ -70,6 +83,7 @@ export default function Registro() {
               className="w-full p-4 rounded-2xl bg-brand-bg border-none focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner" 
               required
               maxLength="50"
+              disabled={exito !== null} // Deshabilitamos si ya se registró
             />
           </div>
           <div>
@@ -81,6 +95,7 @@ export default function Registro() {
               className="w-full p-4 rounded-2xl bg-brand-bg border-none focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner" 
               required
               maxLength="50"
+              disabled={exito !== null}
             />
           </div>
         </div>
@@ -95,6 +110,7 @@ export default function Registro() {
             className="w-full p-4 rounded-2xl bg-brand-bg border-none focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner" 
             required
             maxLength="30"
+            disabled={exito !== null}
           />
         </div>
 
@@ -107,6 +123,7 @@ export default function Registro() {
             className="w-full p-4 rounded-2xl bg-brand-bg border-none focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner" 
             required
             maxLength="100"
+            disabled={exito !== null}
           />
         </div>
 
@@ -121,11 +138,13 @@ export default function Registro() {
               required
               minLength="6"
               maxLength="64"
+              disabled={exito !== null}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text transition-colors"
+              disabled={exito !== null}
             >
               {showPassword ? (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -143,10 +162,10 @@ export default function Registro() {
 
         <button 
           type="submit" 
-          disabled={loading}
+          disabled={loading || exito !== null}
           className="w-full bg-brand-primary text-white font-bold py-4 rounded-full active:scale-95 transition-transform shadow-md mt-6 disabled:opacity-70"
         >
-          {loading ? 'Registrando...' : 'Registrarse'}
+          {loading ? 'Registrando...' : exito ? '¡Listo!' : 'Registrarse'}
         </button>
 
         <div className="text-center pt-2">
