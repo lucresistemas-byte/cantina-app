@@ -227,14 +227,14 @@ export default function Dashboard() {
 
       <main className="flex-1 px-6 pb-36 space-y-4 overflow-y-auto z-0 relative">
         <div className="flex justify-between items-center mb-1">
-          <h2 className="text-xs font-bold text-brand-muted uppercase tracking-wider">Punto de Venta</h2>
+          <h2 className="text-xs font-bold text-brand-secondary uppercase tracking-wider">Punto de Venta</h2>
         </div>
 
         {!loading && productos.length > 0 && categoriasDisponibles.length > 0 && (
           <div className="flex bg-brand-surface p-1.5 rounded-2xl shadow-soft gap-1 overflow-x-auto">
             <button 
               onClick={() => setCategoriaActiva('todos')} 
-              className={`flex-1 min-w-[70px] py-2.5 text-xs font-bold rounded-xl transition-all ${categoriaActiva === 'todos' ? 'bg-brand-primary text-white shadow-md' : 'text-brand-muted hover:text-brand-text'}`}
+              className={`flex-1 min-w-[70px] py-2.5 text-xs font-bold rounded-xl transition-all ${categoriaActiva === 'todos' ? 'bg-brand-primary text-white shadow-md' : 'text-brand-secondary hover:text-brand-primary'}`}
             >
               Todos
             </button>
@@ -243,7 +243,7 @@ export default function Dashboard() {
               <button 
                 key={catKey}
                 onClick={() => setCategoriaActiva(catKey)} 
-                className={`flex-1 min-w-[80px] py-2.5 text-xs font-bold rounded-xl transition-all capitalize ${categoriaActiva === catKey ? 'bg-brand-primary text-white shadow-md' : 'text-brand-muted hover:text-brand-text'}`}
+                className={`flex-1 min-w-[80px] py-2.5 text-xs font-bold rounded-xl transition-all capitalize ${categoriaActiva === catKey ? 'bg-brand-primary text-white shadow-md' : 'text-brand-secondary hover:text-brand-primary'}`}
               >
                 {mapaCategorias[catKey]}
               </button>
@@ -266,7 +266,7 @@ export default function Dashboard() {
                 <h3 className="font-bold text-brand-text text-lg">{prod.nombre_producto}</h3>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-brand-secondary font-bold">${prod.precio_venta}</span>
-                  {prod.cantidad_disp !== null && <span className="text-xs text-brand-muted font-medium">Stock: {prod.cantidad_disp}</span>}
+                  {prod.cantidad_disp !== null && <span className="text-xs text-brand-text font-medium">Stock: {prod.cantidad_disp}</span>}
                 </div>
               </div>
               
@@ -281,11 +281,13 @@ export default function Dashboard() {
       {/* CARRITO */}
       {isCartOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity" onClick={() => setIsCartOpen(false)} />}
       <div className={`fixed bottom-0 left-0 w-full bg-brand-surface rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 flex flex-col transition-all duration-300 ease-in-out border-t border-brand-bg ${isCartOpen ? 'h-[75vh]' : 'h-auto'}`}>
-        <div onClick={() => { if (carrito.length > 0) setIsCartOpen(!isCartOpen) }} className="pt-6 px-8 pb-12 cursor-pointer flex flex-col items-center shrink-0">
+        
+        {/* ENCABEZADO DEL CARRITO (Acá aplicamos los cambios de color y espaciado pb-14) */}
+        <div onClick={() => { if (carrito.length > 0) setIsCartOpen(!isCartOpen) }} className="pt-6 px-8 pb-14 cursor-pointer flex flex-col items-center shrink-0">
           <div className="w-12 h-1.5 bg-brand-bg rounded-full mb-5" />
           <div className="flex justify-between items-center w-full max-w-lg mx-auto">
             <div>
-              <p className="text-sm font-medium text-brand-muted">Total a cobrar ({totalItems} items)</p>
+              <p className="text-sm font-medium text-brand-text">Total a cobrar ({totalItems} items)</p>
               <p className="text-3xl font-extrabold text-brand-text tracking-tight">${totalCobrar}</p>
             </div>
             
@@ -299,6 +301,7 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* DETALLE DEL PEDIDO (Esto queda igual para no perder funcionalidad) */}
         <div className={`flex-1 overflow-y-auto px-8 pb-8 transition-opacity duration-300 ${isCartOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-lg text-brand-text">Detalle del pedido</h3>
