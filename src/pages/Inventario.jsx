@@ -11,15 +11,19 @@ export default function Inventario() {
   const [cantinaSeleccionada, setCantinaSeleccionada] = useState(null)
   const [productos, setProductos] = useState([])
   
+  // Modal Crear Producto
   const [showModal, setShowModal] = useState(false)
   const [nombreProducto, setNombreProducto] = useState('')
   const [precioProducto, setPrecioProducto] = useState('')
   const [stockInicial, setStockInicial] = useState('')
+  const [categoriaNuevo, setCategoriaNuevo] = useState('sin categoria') // NUEVO
 
+  // Modal Editar Producto
   const [showEditModal, setShowEditModal] = useState(false)
   const [productoAEditar, setProductoAEditar] = useState(null)
   const [editNombre, setEditNombre] = useState('')
   const [editPrecio, setEditPrecio] = useState('')
+  const [editCategoria, setEditCategoria] = useState('sin categoria') // NUEVO
   const [tipoAjuste, setTipoAjuste] = useState('sumar') 
   const [editStockAjuste, setEditStockAjuste] = useState('')
 
@@ -52,7 +56,11 @@ export default function Inventario() {
     if (error) {
       setError('No se pudo cargar el inventario.')
     } else if (data) {
-      setProductos(data)
+      // ORDEN ALFABÉTICO (A - Z)
+      const productosOrdenados = data.sort((a, b) => 
+        a.nombre_producto.localeCompare(b.nombre_producto, 'es', { sensitivity: 'base' })
+      )
+      setProductos(productosOrdenados)
     }
     setLoading(false)
   }
@@ -67,7 +75,8 @@ export default function Inventario() {
       p_id_cantina: cantinaSeleccionada.id_cantina,
       p_nombre_producto: nombreProducto,
       p_precio_venta: parseFloat(precioProducto),
-      p_cantidad_disp: stockInicial === '' ? null : parseInt(stockInicial) 
+      p_cantidad_disp: stockInicial === '' ? null : parseInt(stockInicial),
+      p_categoria: categoriaNuevo // NUEVO: enviamos la categoría elegida
     }
 
     const { error: rpcError } = await supabase.rpc('crear_producto', payload)
@@ -79,6 +88,7 @@ export default function Inventario() {
       setNombreProducto('')
       setPrecioProducto('')
       setStockInicial('')
+      setCategoriaNuevo('sin categoria')
       setShowModal(false)
       fetchProductos(cantinaSeleccionada.id_cantina)
       setTimeout(() => setExito(null), 3000)
@@ -98,6 +108,7 @@ export default function Inventario() {
 
     if (editNombre.trim() !== productoAEditar.nombre_producto) payload.p_nombre_producto = editNombre.trim()
     if (parseFloat(editPrecio) !== productoAEditar.precio_venta) payload.p_precio_venta = parseFloat(editPrecio)
+    if (editCategoria !== productoAEditar.categoria) payload.p_categoria = editCategoria // NUEVO
     
     let ajuste = parseInt(editStockAjuste)
     if (!isNaN(ajuste) && ajuste > 0) payload.p_ajuste_stock = tipoAjuste === 'restar' ? -Math.abs(ajuste) : Math.abs(ajuste)
@@ -125,6 +136,7 @@ export default function Inventario() {
     setProductoAEditar(prod)
     setEditNombre(prod.nombre_producto)
     setEditPrecio(prod.precio_venta.toString())
+    setEditCategoria(prod.categoria || 'sin categoria')
     setTipoAjuste('sumar')
     setEditStockAjuste('') 
     setShowEditModal(true)
@@ -194,7 +206,7 @@ export default function Inventario() {
                 <div key={prod.id_producto} className="bg-brand-surface p-4 rounded-3xl shadow-sm flex justify-between items-center border border-brand-bg/50">
                   <div className="flex-1 pr-4">
                     <h3 className="font-bold text-brand-text text-lg leading-tight">{prod.nombre_producto}</h3>
-                    {/* PRECIO MARRÓN ACÁ */}
+                    <p className="text-xs text-brand-muted uppercase tracking-wider font-semibold mt-0.5">Cat: {prod.categoria || 'sin categoria'}</p>
                     <p className="text-brand-secondary font-bold mt-1">${prod.precio_venta}</p>
                   </div>
                   
@@ -217,10 +229,10 @@ export default function Inventario() {
         )}
       </main>
 
-      {/* Modal Nuevo Producto Omitido por brevedad visual, pero presente en el código funcional */}
+      {/* MODAL CREAR */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">Nuevo Producto</h3>
               <button onClick={() => setShowModal(false)} className="text-brand-muted p-1"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -235,6 +247,15 @@ export default function Inventario() {
                 <input type="number" step="0.01" value={precioProducto} onChange={(e) => setPrecioProducto(e.target.value)} className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-primary text-brand-text shadow-inner" required />
               </div>
               <div>
+                <label className="block text-sm font-bold text-brand-text mb-2">Categoría</label>
+                <select value={categoriaNuevo} onChange={(e) => setCategoriaNuevo(e.target.value)} className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-primary text-brand-text shadow-inner">
+                  <option value="sin categoria">Sin categoría</option>
+                  <option value="bebida">Bebida</option>
+                  <option value="dulce">Dulce</option>
+                  <option value="salado">Salado</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-bold text-brand-text mb-2">Stock inicial <span className="text-brand-muted font-normal">(Opcional)</span></label>
                 <input type="number" value={stockInicial} onChange={(e) => setStockInicial(e.target.value)} className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-primary text-brand-text shadow-inner" />
               </div>
@@ -246,6 +267,7 @@ export default function Inventario() {
         </div>
       )}
 
+      {/* MODAL EDITAR */}
       {showEditModal && productoAEditar && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
@@ -256,33 +278,42 @@ export default function Inventario() {
               </button>
             </div>
 
-            <form onSubmit={handleEditarProducto} className="space-y-5">
-              <div className="space-y-4 pb-4 border-b border-brand-bg">
+            <form onSubmit={handleEditarProducto} className="space-y-4">
+              <div className="space-y-3 pb-3 border-b border-brand-bg">
                 <div>
-                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">Nombre</label>
+                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-1">Nombre</label>
                   <input type="text" value={editNombre} onChange={(e) => setEditNombre(e.target.value)} className="w-full p-3 rounded-xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner" required />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">Precio de venta ($)</label>
+                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-1">Precio de venta ($)</label>
                   <input type="number" step="0.01" value={editPrecio} onChange={(e) => setEditPrecio(e.target.value)} className="w-full p-3 rounded-xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-1">Categoría</label>
+                  <select value={editCategoria} onChange={(e) => setEditCategoria(e.target.value)} className="w-full p-3 rounded-xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner">
+                    <option value="sin categoria">Sin categoría</option>
+                    <option value="bebida">Bebida</option>
+                    <option value="dulce">Dulce</option>
+                    <option value="salado">Salado</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="pt-2">
-                <div className="flex justify-between items-end mb-3">
+              <div className="pt-1">
+                <div className="flex justify-between items-end mb-2">
                   <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider">Ajustar Stock</label>
-                  <span className="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-1 rounded-full">
+                  <span className="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">
                     Actual: {productoAEditar.cantidad_disp !== null ? productoAEditar.cantidad_disp : 'N/A'}
                   </span>
                 </div>
                 
-                <div className="flex bg-brand-bg p-1 rounded-xl mb-3">
-                  <button type="button" onClick={() => setTipoAjuste('sumar')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${tipoAjuste === 'sumar' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-brand-muted hover:text-brand-text'}`}>Sumar (+)</button>
-                  <button type="button" onClick={() => setTipoAjuste('restar')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${tipoAjuste === 'restar' ? 'bg-red-100 text-red-600 shadow-sm' : 'text-brand-muted hover:text-brand-text'}`}>Restar (-)</button>
+                <div className="flex bg-brand-bg p-1 rounded-xl mb-2">
+                  <button type="button" onClick={() => setTipoAjuste('sumar')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${tipoAjuste === 'sumar' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-brand-muted hover:text-brand-text'}`}>Sumar (+)</button>
+                  <button type="button" onClick={() => setTipoAjuste('restar')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${tipoAjuste === 'restar' ? 'bg-red-100 text-red-600 shadow-sm' : 'text-brand-muted hover:text-brand-text'}`}>Restar (-)</button>
                 </div>
-                <input type="number" min="1" value={editStockAjuste} onChange={(e) => setEditStockAjuste(e.target.value)} placeholder={`Cantidad a ${tipoAjuste}... (Opcional)`} className="w-full p-3 rounded-xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner text-center font-bold" />
+                <input type="number" min="1" value={editStockAjuste} onChange={(e) => setEditStockAjuste(e.target.value)} placeholder={`Cantidad a ${tipoAjuste}... (Opcional)`} className="w-full p-3 rounded-xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner text-center font-bold text-sm" />
               </div>
-              <button type="submit" disabled={loading} className="w-full bg-brand-secondary text-white font-bold py-4 rounded-full shadow-md disabled:opacity-70 active:scale-95 transition-transform mt-2">
+              <button type="submit" disabled={loading} className="w-full bg-brand-secondary text-white font-bold py-3.5 rounded-full shadow-md disabled:opacity-70 active:scale-95 transition-transform mt-2">
                 {loading ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </form>

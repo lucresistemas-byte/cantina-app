@@ -5,23 +5,27 @@ import Dashboard from './pages/Dashboard'
 import GestionCantina from './pages/GestionCantina'
 import Inventario from './pages/Inventario'
 import HistorialVentas from './pages/HistorialVentas'
+import MenuPublico from './pages/MenuPublico'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-          {/* Ahora el Login es la página principal */}
-          <Route path="/" element={<Login />} />
-          <Route path="/registro" element={<Registro />} />
+        {/* Ahora el Login es la página principal */}
+        <Route path="/" element={<Login />} />
+        <Route path="/registro" element={<Registro />} />
 
-          {/* Movemos el Dashboard a su propia ruta */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          
-          {/* Nuestras dos vistas principales de administración */}
-          <Route path="/gestion" element={<GestionCantina />} />
-          <Route path="/inventario" element={<Inventario />} />
-          <Route path="/historial" element={<HistorialVentas />} />
-        </Routes>
+        {/* 2. Ruta pública para el QR de la cantina */}
+        <Route path="/menu/:idCantina" element={<MenuPublico />} />
+
+        {/* Movemos el Dashboard a su propia ruta */}
+        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* Nuestras dos vistas principales de administración */}
+        <Route path="/gestion" element={<GestionCantina />} />
+        <Route path="/inventario" element={<Inventario />} />
+        <Route path="/historial" element={<HistorialVentas />} />
+      </Routes>
     </BrowserRouter>
   )
 }

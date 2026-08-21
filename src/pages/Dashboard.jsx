@@ -11,6 +11,9 @@ export default function Dashboard() {
   const [mostrarSelector, setMostrarSelector] = useState(false)
   const [userName, setUserName] = useState('') 
   
+  // Pestañas dinámicas
+  const [categoriaActiva, setCategoriaActiva] = useState('todos')
+  
   const [carrito, setCarrito] = useState([])
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -41,6 +44,7 @@ export default function Dashboard() {
       setCarrito([]) 
       setIsCartOpen(false)
       setMensajeExito(null)
+      setCategoriaActiva('todos') // Reiniciamos a 'todos' al cambiar de cantina
     }
   }, [cantinaSeleccionada])
 
@@ -57,9 +61,34 @@ export default function Dashboard() {
   const fetchProductos = async (idCantina) => {
     const { data, error } = await supabase.rpc('obtener_productos_cantina', { p_id_cantina: idCantina })
     if (!error && data) {
-      setProductos(data)
+      // ORDEN ALFABÉTICO (A - Z)
+      const productosOrdenados = data.sort((a, b) => 
+        a.nombre_producto.localeCompare(b.nombre_producto, 'es', { sensitivity: 'base' })
+      )
+      setProductos(productosOrdenados)
     }
   }
+
+  // --- LÓGICA DE CATEGORÍAS DINÁMICAS ---
+  // 1. Definimos las categorías posibles con su nombre amigable
+  const mapaCategorias = {
+    'dulce': 'Dulce',
+    'salado': 'Salado',
+    'bebida': 'Bebida',
+    'sin categoria': 'Otros'
+  }
+
+  // 2. Calculamos qué categorías tienen al menos un producto cargado
+  const categoriasDisponibles = Object.keys(mapaCategorias).filter(catKey => 
+    productos.some(prod => (prod.categoria || 'sin categoria') === catKey)
+  )
+
+  // 3. Filtrar productos según la pestaña activa
+  const productosFiltrados = productos.filter(prod => {
+    const catProd = prod.categoria || 'sin categoria'
+    if (categoriaActiva === 'todos') return true
+    return catProd === categoriaActiva
+  })
 
   const agregarAlCarrito = (producto) => {
     setCarrito((prev) => {
@@ -172,23 +201,46 @@ export default function Dashboard() {
       </header>
 
       <main className="flex-1 px-6 pb-28 space-y-4 overflow-y-auto z-0 relative">
-        <h2 className="text-xs font-bold text-brand-muted uppercase tracking-wider mb-1">Punto de Venta</h2>
+        <div className="flex justify-between items-center mb-1">
+          <h2 className="text-xs font-bold text-brand-muted uppercase tracking-wider">Punto de Venta</h2>
+        </div>
+
+        {/* PESTAÑAS DINÁMICAS (Solo se muestran si tienen productos) */}
+        {!loading && productos.length > 0 && (
+          <div className="flex bg-brand-surface p-1.5 rounded-2xl shadow-soft gap-1 overflow-x-auto">
+            <button 
+              onClick={() => setCategoriaActiva('todos')} 
+              className={`flex-1 min-w-[70px] py-2.5 text-xs font-bold rounded-xl transition-all ${categoriaActiva === 'todos' ? 'bg-brand-primary text-white shadow-md' : 'text-brand-muted hover:text-brand-text'}`}
+            >
+              Todos
+            </button>
+            
+            {categoriasDisponibles.map((catKey) => (
+              <button 
+                key={catKey}
+                onClick={() => setCategoriaActiva(catKey)} 
+                className={`flex-1 min-w-[80px] py-2.5 text-xs font-bold rounded-xl transition-all capitalize ${categoriaActiva === catKey ? 'bg-brand-primary text-white shadow-md' : 'text-brand-muted hover:text-brand-text'}`}
+              >
+                {mapaCategorias[catKey]}
+              </button>
+            ))}
+          </div>
+        )}
         
         {mensajeExito && <div className="bg-green-100 text-green-700 p-4 rounded-2xl text-sm font-bold text-center shadow-md animate-in fade-in slide-in-from-top-4 mb-4">{mensajeExito}</div>}
 
         {loading ? (
           <p className="text-center text-brand-muted mt-10 animate-pulse">Preparando sistema...</p>
-        ) : productos.length === 0 ? (
+        ) : productosFiltrados.length === 0 ? (
           <div className="text-center mt-10 p-6 bg-brand-surface rounded-3xl border border-dashed border-brand-bg">
-            <p className="text-brand-muted font-medium">No hay productos en esta cantina.</p>
+            <p className="text-brand-muted font-medium">No hay productos en esta categoría.</p>
           </div>
         ) : (
-          productos.map((prod) => (
+          productosFiltrados.map((prod) => (
             <div key={prod.id_producto} className="bg-brand-surface p-5 rounded-3xl shadow-soft flex justify-between items-center">
               <div>
                 <h3 className="font-bold text-brand-text text-lg">{prod.nombre_producto}</h3>
                 <div className="flex items-center gap-3 mt-1">
-                  {/* PRECIO MARRÓN ACÁ */}
                   <span className="text-brand-secondary font-bold">${prod.precio_venta}</span>
                   {prod.cantidad_disp !== null && <span className="text-xs text-brand-muted font-medium">Stock: {prod.cantidad_disp}</span>}
                 </div>
@@ -202,6 +254,7 @@ export default function Dashboard() {
         )}
       </main>
 
+      {/* CARRITO Y MODALES */}
       {isCartOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity" onClick={() => setIsCartOpen(false)} />}
       <div className={`fixed bottom-0 left-0 w-full bg-brand-surface rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 flex flex-col transition-all duration-300 ease-in-out border-t border-brand-bg ${isCartOpen ? 'h-[75vh]' : 'h-auto'}`}>
         <div onClick={() => { if (carrito.length > 0) setIsCartOpen(!isCartOpen) }} className="p-6 px-8 cursor-pointer flex flex-col items-center shrink-0">
@@ -232,7 +285,6 @@ export default function Dashboard() {
               <div key={item.id_producto} className="flex justify-between items-center bg-brand-bg/50 p-4 rounded-2xl">
                 <div className="flex-1">
                   <h4 className="font-bold text-brand-text">{item.nombre_producto}</h4>
-                  {/* PRECIO SUBTOTAL MARRÓN ACÁ */}
                   <p className="text-sm text-brand-secondary font-bold">${item.precio_venta * item.cantidad}</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -253,7 +305,6 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-center flex flex-col items-center">
             <h3 className="text-2xl font-extrabold text-brand-text mb-2">Finalizar Venta</h3>
-            {/* TOTAL MODAL MARRÓN ACÁ */}
             <p className="text-brand-muted mb-4">Total: <span className="font-bold text-brand-secondary text-xl">${totalCobrar}</span></p>
 
             {errorPago && <div className="w-full bg-red-50 text-red-600 text-sm font-bold p-3 rounded-xl mb-4">{errorPago}</div>}
