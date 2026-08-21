@@ -66,7 +66,7 @@ export default function HistorialVentas() {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <p className="font-bold text-brand-text">Venta #{venta.id_venta}</p>
-                  <p className="text-xs text-brand-muted">{new Date(venta.fecha_hora).toLocaleString()}</p>
+                  <p className="text-xs text-brand-text">{new Date(venta.fecha_hora).toLocaleString()}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-extrabold text-brand-primary text-lg">${venta.detalles.reduce((acc, d) => acc + d.subtotal, 0)}</p>
@@ -77,9 +77,12 @@ export default function HistorialVentas() {
               {/* Detalle incrustado directamente en la tarjeta */}
               <div className="border-t border-brand-bg pt-3 mt-3 space-y-2">
                 {venta.detalles.map((d) => (
-                  <div key={d.id_detalle} className="flex justify-between items-center text-sm">
-                    <span className="text-brand-muted">{d.cant_vendida}x {d.nombre_producto}</span>
-                    <span className="font-bold text-brand-text">${d.subtotal}</span>
+                  <div key={d.id_detalle} className="flex justify-between items-center text-base">
+                    <span className="text-brand-text font-medium flex gap-6">
+  <span>{d.cant_vendida}x</span>
+  <span>{d.nombre_producto}</span>
+</span>
+                    <span className="font-extrabold text-brand-text">${d.subtotal}</span>
                   </div>
                 ))}
               </div>
