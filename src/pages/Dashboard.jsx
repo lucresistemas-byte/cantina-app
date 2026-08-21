@@ -1,112 +1,98 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
-
-const productosDePrueba = [
-    { id_producto: 1, nombre: 'Sándwich de Miga', precio_venta: 1200, stock: 15 },
-    { id_producto: 2, nombre: 'Coca Cola 500ml', precio_venta: 1500, stock: 24 },
-    { id_producto: 3, nombre: 'Alfajor Triple', precio_venta: 800, stock: 10 },
-    { id_producto: 4, nombre: 'Papas Fritas', precio_venta: 1000, stock: 8 },
-]
+import Sidebar from '../components/Sidebar'
 
 export default function Dashboard() {
-    const [carrito, setCarrito] = useState([])
-    const navigate = useNavigate()
+  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [carrito, setCarrito] = useState([])
 
-    const agregarAlCarrito = (producto) => {
-        setCarrito([...carrito, producto])
+  // Productos de prueba temporales
+  const productosVenta = [
+    { id: 1, nombre: 'Sándwich de Miga', precio: 1200, stock: 15 },
+    { id: 2, nombre: 'Coca Cola 500ml', precio: 1500, stock: 24 },
+    { id: 3, nombre: 'Alfajor Triple', precio: 800, stock: 10 },
+  ]
+
+  // Función para agregar productos al carrito
+  const agregarAlCarrito = (producto) => {
+    setCarrito([...carrito, producto])
+  }
+
+  // Calcular el total a cobrar sumando los precios
+  const totalACobrar = carrito.reduce((acc, item) => acc + item.precio, 0)
+
+  // Función para simular el cobro
+  const handleCobrar = () => {
+    if (carrito.length === 0) {
+      alert('Agregá al menos un producto para cobrar.')
+      return
     }
+    alert(`¡Venta cobrada con éxito! Total: $${totalACobrar}`)
+    setCarrito([]) // Vaciamos el carrito
+  }
 
-    const total = carrito.reduce((sum, item) => sum + item.precio_venta, 0)
+  return (
+    <div className="min-h-screen bg-brand-bg flex flex-col font-sans">
+      
+      {/* Header con Menú a la izquierda */}
+      <header className="flex justify-between items-center p-6 pt-10">
+        <button 
+          onClick={() => setMenuOpen(true)}
+          className="p-3 rounded-2xl bg-brand-surface text-brand-text shadow-soft active:scale-90 transition-transform"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
 
-    const handleCerrarSesion = async () => {
-        // Le decimos a Supabase que cierre la sesión
-        await supabase.auth.signOut()
-        // Volvemos a la pantalla de Login
-        navigate('/')
-    }
-
-    return (
-        <div className="min-h-screen bg-brand-bg flex flex-col font-sans">
-
-            {/* Header tipo App */}
-            {/* Header tipo App */}
-            <header className="flex justify-between items-center p-6 pt-10 gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-brand-text tracking-tight">Cantina</h1>
-                    <p className="text-sm text-brand-muted">Punto de Venta</p>
-                </div>
-
-                {/* Contenedor de botones derechos */}
-                <div className="flex gap-3">
-                    {/* Botón de Cerrar Sesión */}
-                    <button
-                        onClick={handleCerrarSesion}
-                        className="p-2 rounded-full bg-red-50 text-red-500 shadow-soft active:scale-90 transition-transform"
-                        title="Cerrar Sesión"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                    </button>
-
-                    {/* Botón de Menú (Inventario) */}
-                    <button
-                        onClick={() => navigate('/productos')}
-                        className="p-2 rounded-full bg-brand-surface text-brand-text shadow-soft active:scale-90 transition-transform"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
-                </div>
-            </header>
-
-            {/* Lista de Productos estilo Tarjetas */}
-            <main className="flex-1 px-6 pb-32 space-y-4 overflow-y-auto">
-                {productosDePrueba.map((producto) => (
-                    <div
-                        key={producto.id_producto}
-                        className="bg-brand-surface p-4 rounded-3xl shadow-soft flex justify-between items-center"
-                    >
-                        <div>
-                            <h3 className="font-semibold text-brand-text text-lg">{producto.nombre}</h3>
-                            <div className="flex items-center gap-4 mt-1">
-                                <span className="font-medium text-brand-text">${producto.precio_venta}</span>
-                                <span className="text-xs text-brand-muted">Stock: {producto.stock}</span>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={() => agregarAlCarrito(producto)}
-                            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-brand-muted hover:bg-gray-100 active:scale-90 transition-all"
-                        >
-                            +
-                        </button>
-                    </div>
-                ))}
-            </main>
-
-            {/* Bottom Bar (Carrito) inspirado en la imagen */}
-            <div className="fixed bottom-0 left-0 w-full bg-brand-bg p-6 bg-opacity-90 backdrop-blur-sm">
-                <div className="bg-brand-surface rounded-full shadow-soft p-2 pr-6 pl-6 flex justify-between items-center h-20">
-                    <div className="flex flex-col">
-                        <span className="text-sm text-brand-muted font-medium">Total</span>
-                        <span className="font-bold text-brand-text text-xl">${total}</span>
-                    </div>
-
-                    <button
-                        className={`px-8 py-3 rounded-full font-semibold transition-all shadow-md ${carrito.length > 0
-                            ? 'bg-brand-secondary text-white hover:opacity-90 active:scale-95'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
-                        disabled={carrito.length === 0}
-                    >
-                        Cobrar
-                    </button>
-                </div>
-            </div>
-
+        <div className="text-right">
+          <h1 className="text-xl font-bold text-brand-text tracking-tight">Cantina</h1>
+          <p className="text-xs text-brand-muted">Punto de Venta</p>
         </div>
-    )
+      </header>
+
+      {/* Lista de productos para seleccionar */}
+      <main className="flex-1 px-6 pb-32 space-y-4 overflow-y-auto">
+        {productosVenta.map((item) => (
+          <div key={item.id} className="bg-brand-surface p-4 rounded-3xl shadow-soft flex justify-between items-center">
+            <div>
+              <h3 className="font-semibold text-brand-text">{item.nombre}</h3>
+              <p className="font-medium text-brand-secondary mt-1">
+                ${item.precio} <span className="text-xs text-brand-muted ml-2">Stock: {item.stock}</span>
+              </p>
+            </div>
+            
+            {/* Botón de sumar al carrito */}
+            <button 
+              onClick={() => agregarAlCarrito(item)}
+              className="bg-brand-bg text-brand-primary w-10 h-10 rounded-2xl font-bold flex items-center justify-center shadow-inner active:scale-90 transition-transform"
+            >
+              +
+            </button>
+          </div>
+        ))}
+      </main>
+
+      {/* Barra inferior de Cobro Dinámica */}
+      <div className="fixed bottom-0 left-0 right-0 bg-brand-surface p-6 shadow-soft rounded-t-3xl flex justify-between items-center border-t border-brand-bg z-20">
+        <div>
+          <span className="text-xs text-brand-muted block">
+            Total a cobrar ({carrito.length} items)
+          </span>
+          <span className="text-2xl font-bold text-brand-text">${totalACobrar}</span>
+        </div>
+        <button 
+          onClick={handleCobrar}
+          className="bg-brand-primary text-white px-8 py-4 rounded-full font-bold shadow-md active:scale-95 transition-transform"
+        >
+          Cobrar
+        </button>
+      </div>
+
+      {/* Componente del Menú Lateral */}
+      <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+
+    </div>
+  )
 }

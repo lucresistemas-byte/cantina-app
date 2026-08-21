@@ -4,6 +4,7 @@ import Registro from './pages/Registro'
 import Dashboard from './pages/Dashboard'
 import Productos from './pages/Productos'
 import NuevoProducto from './pages/NuevoProducto'
+import GestionCantina from './pages/GestionCantina'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} /> 
         <Route path="/productos" element={<Productos />} />
         <Route path="/nuevo-producto" element={<NuevoProducto />} />
+        <Route path="/gestion" element={<GestionCantina />} />
       </Routes>
     </BrowserRouter>
   )
