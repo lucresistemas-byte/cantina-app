@@ -78,7 +78,7 @@ export default function HistorialVentas() {
               <div className="border-t border-brand-bg pt-3 mt-3 space-y-2">
                 {venta.detalles.map((d) => (
                   <div key={d.id_detalle} className="flex justify-between items-center text-base">
-                    <span className="text-brand-text font-medium flex gap-6">
+                    <span className="text-brand-text font-medium flex gap-4">
   <span>{d.cant_vendida}x</span>
   <span>{d.nombre_producto}</span>
 </span>
