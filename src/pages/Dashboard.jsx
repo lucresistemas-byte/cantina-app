@@ -225,7 +225,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <main className="flex-1 px-6 pb-28 space-y-4 overflow-y-auto z-0 relative">
+      <main className="flex-1 px-6 pb-36 space-y-4 overflow-y-auto z-0 relative">
         <div className="flex justify-between items-center mb-1">
           <h2 className="text-xs font-bold text-brand-muted uppercase tracking-wider">Punto de Venta</h2>
         </div>
@@ -281,7 +281,7 @@ export default function Dashboard() {
       {/* CARRITO */}
       {isCartOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity" onClick={() => setIsCartOpen(false)} />}
       <div className={`fixed bottom-0 left-0 w-full bg-brand-surface rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 flex flex-col transition-all duration-300 ease-in-out border-t border-brand-bg ${isCartOpen ? 'h-[75vh]' : 'h-auto'}`}>
-        <div onClick={() => { if (carrito.length > 0) setIsCartOpen(!isCartOpen) }} className="p-6 px-8 cursor-pointer flex flex-col items-center shrink-0">
+        <div onClick={() => { if (carrito.length > 0) setIsCartOpen(!isCartOpen) }} className="pt-6 px-8 pb-12 cursor-pointer flex flex-col items-center shrink-0">
           <div className="w-12 h-1.5 bg-brand-bg rounded-full mb-5" />
           <div className="flex justify-between items-center w-full max-w-lg mx-auto">
             <div>

@@ -8,7 +8,6 @@ export default function HistorialVentas() {
   const [cantinas, setCantinas] = useState([])
   const [cantinaSeleccionada, setCantinaSeleccionada] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [detalleSeleccionado, setDetalleSeleccionado] = useState(null)
   const [mostrarSelector, setMostrarSelector] = useState(false)
 
   useEffect(() => {
@@ -62,8 +61,9 @@ export default function HistorialVentas() {
         {loading ? <p className="text-center text-brand-muted animate-pulse">Cargando ventas...</p> : 
           ventas.length === 0 ? <p className="text-center text-brand-muted">No hay ventas registradas.</p> :
           ventas.map((venta) => (
-            <div key={venta.id_venta} onClick={() => setDetalleSeleccionado(venta)} className="bg-brand-surface p-5 rounded-3xl shadow-soft cursor-pointer active:scale-95 transition-transform">
-              <div className="flex justify-between items-start">
+            <div key={venta.id_venta} className="bg-brand-surface p-5 rounded-3xl shadow-soft">
+              {/* Encabezado de la venta */}
+              <div className="flex justify-between items-start mb-3">
                 <div>
                   <p className="font-bold text-brand-text">Venta #{venta.id_venta}</p>
                   <p className="text-xs text-brand-muted">{new Date(venta.fecha_hora).toLocaleString()}</p>
@@ -73,28 +73,20 @@ export default function HistorialVentas() {
                   <p className="text-xs font-bold uppercase text-brand-secondary">{venta.metodo_pago}</p>
                 </div>
               </div>
+              
+              {/* Detalle incrustado directamente en la tarjeta */}
+              <div className="border-t border-brand-bg pt-3 mt-3 space-y-2">
+                {venta.detalles.map((d) => (
+                  <div key={d.id_detalle} className="flex justify-between items-center text-sm">
+                    <span className="text-brand-muted">{d.cant_vendida}x {d.nombre_producto}</span>
+                    <span className="font-bold text-brand-text">${d.subtotal}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))
         }
       </main>
-
-      {/* Modal Detalle */}
-      {detalleSeleccionado && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl">
-            <h3 className="font-bold text-xl mb-4 text-brand-text">Detalle Venta #{detalleSeleccionado.id_venta}</h3>
-            <div className="space-y-3 mb-6">
-              {detalleSeleccionado.detalles.map((d) => (
-                <div key={d.id_detalle} className="flex justify-between text-sm">
-                  <span>{d.cant_vendida}x {d.nombre_producto}</span>
-                  <span className="font-bold">${d.subtotal}</span>
-                </div>
-              ))}
-            </div>
-            <button onClick={() => setDetalleSeleccionado(null)} className="w-full bg-brand-primary text-white font-bold py-3 rounded-xl">Cerrar</button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
