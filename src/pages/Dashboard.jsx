@@ -1,97 +1,299 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
+import { supabase } from '../supabaseClient'
 
 export default function Dashboard() {
-  const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  
+  // Estados de datos
+  const [cantinas, setCantinas] = useState([])
+  const [cantinaSeleccionada, setCantinaSeleccionada] = useState(null)
+  const [productos, setProductos] = useState([])
+  const [mostrarSelector, setMostrarSelector] = useState(false)
+  
+  // Estados del carrito y UI
   const [carrito, setCarrito] = useState([])
+  const [isCartOpen, setIsCartOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  
+  // Estados del Modal de Pago
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  
+  // Manejo de feedback al usuario
+  const [mensajeExito, setMensajeExito] = useState(null)
+  const [errorPago, setErrorPago] = useState(null) // Para errores de stock de JP
 
-  // Productos de prueba temporales
-  const productosVenta = [
-    { id: 1, nombre: 'Sándwich de Miga', precio: 1200, stock: 15 },
-    { id: 2, nombre: 'Coca Cola 500ml', precio: 1500, stock: 24 },
-    { id: 3, nombre: 'Alfajor Triple', precio: 800, stock: 10 },
-  ]
+  useEffect(() => {
+    fetchMisCantinas()
+  }, [])
 
-  // Función para agregar productos al carrito
-  const agregarAlCarrito = (producto) => {
-    setCarrito([...carrito, producto])
+  useEffect(() => {
+    if (cantinaSeleccionada) {
+      fetchProductos(cantinaSeleccionada.id_cantina)
+      setCarrito([]) 
+      setIsCartOpen(false)
+      setMensajeExito(null)
+    }
+  }, [cantinaSeleccionada])
+
+  const fetchMisCantinas = async () => {
+    setLoading(true)
+    const { data, error } = await supabase.rpc('obtener_mis_cantinas')
+    if (!error && data && data.length > 0) {
+      setCantinas(data)
+      setCantinaSeleccionada(data[0])
+    }
+    setLoading(false)
   }
 
-  // Calcular el total a cobrar sumando los precios
-  const totalACobrar = carrito.reduce((acc, item) => acc + item.precio, 0)
+  const fetchProductos = async (idCantina) => {
+    const { data, error } = await supabase.rpc('obtener_productos_cantina', { p_id_cantina: idCantina })
+    if (!error && data) {
+      setProductos(data)
+    }
+  }
 
-  // Función para simular el cobro
-  const handleCobrar = () => {
-    if (carrito.length === 0) {
-      alert('Agregá al menos un producto para cobrar.')
+  const agregarAlCarrito = (producto) => {
+    setCarrito((prev) => {
+      const existe = prev.find(item => item.id_producto === producto.id_producto)
+      if (existe) {
+        if (producto.cantidad_disp !== null && existe.cantidad >= producto.cantidad_disp) return prev 
+        return prev.map(item => item.id_producto === producto.id_producto ? { ...item, cantidad: item.cantidad + 1 } : item)
+      }
+      return [...prev, { ...producto, cantidad: 1 }]
+    })
+  }
+
+  const restarDelCarrito = (id_producto) => {
+    setCarrito((prev) => {
+      const existe = prev.find(item => item.id_producto === id_producto)
+      if (existe.cantidad === 1) return prev.filter(item => item.id_producto !== id_producto)
+      return prev.map(item => item.id_producto === id_producto ? { ...item, cantidad: item.cantidad - 1 } : item)
+    })
+  }
+
+  const eliminarDelCarrito = (id_producto) => {
+    setCarrito((prev) => prev.filter(item => item.id_producto !== id_producto))
+    if (carrito.length === 1) setIsCartOpen(false)
+  }
+
+  const vaciarCarrito = () => {
+    setCarrito([])
+    setIsCartOpen(false)
+  }
+
+  // Cálculos totales
+  const totalItems = carrito.reduce((acc, curr) => acc + curr.cantidad, 0)
+  const totalCobrar = carrito.reduce((acc, curr) => acc + (curr.precio_venta * curr.cantidad), 0)
+
+
+  // --- FUNCIÓN REAL DE COBRO CON LA RPC DE JUAMPI ---
+  const confirmarCobro = async (metodoPago) => {
+    setIsProcessing(true)
+    setErrorPago(null)
+    
+    // 1. Estructurar los productos en la forma esperada por el JSONB
+    const detallesPayload = carrito.map(item => ({
+      id_producto: item.id_producto,
+      cant_vendida: item.cantidad
+    }))
+
+    // 2. Llamar a la función de la base de datos
+    const { data: idVentaCreada, error } = await supabase.rpc('registrar_venta', {
+      p_id_cantina: cantinaSeleccionada.id_cantina,
+      p_metodo_pago: metodoPago, 
+      p_detalles: detallesPayload
+    })
+
+    // 3. Manejar el resultado
+    if (error) {
+      console.error('Error al registrar la venta:', error.message)
+      setErrorPago(error.message) // Mostramos el error (ej: "Stock insuficiente")
+      setIsProcessing(false)
       return
     }
-    alert(`¡Venta cobrada con éxito! Total: $${totalACobrar}`)
-    setCarrito([]) // Vaciamos el carrito
+
+    // 4. Camino feliz (Happy Path)
+    console.log('Venta realizada con éxito. ID:', idVentaCreada)
+    setShowPaymentModal(false)
+    setIsProcessing(false)
+    setMensajeExito(`¡Venta #${idVentaCreada} registrada con éxito!`)
+    
+    vaciarCarrito()
+    fetchProductos(cantinaSeleccionada.id_cantina) // Recarga productos para refrescar stock
+    
+    setTimeout(() => setMensajeExito(null), 4000)
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col font-sans">
-      
-      {/* Header con Menú a la izquierda */}
-      <header className="flex justify-between items-center p-6 pt-10">
-        <button 
-          onClick={() => setMenuOpen(true)}
-          className="p-3 rounded-2xl bg-brand-surface text-brand-text shadow-soft active:scale-90 transition-transform"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+    <div className="min-h-screen bg-brand-bg flex flex-col font-sans relative overflow-hidden">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+
+      {/* HEADER */}
+      <header className="flex justify-between items-start p-6 pt-10 relative z-10">
+        <button onClick={() => setIsSidebarOpen(true)} className="p-4 rounded-3xl bg-brand-surface shadow-soft text-brand-text active:scale-95 transition-transform shrink-0">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
 
-        <div className="text-right">
-          <h1 className="text-xl font-bold text-brand-text tracking-tight">Cantina</h1>
-          <p className="text-xs text-brand-muted">Punto de Venta</p>
+        <div className="relative text-right max-w-[70%]">
+          <button onClick={() => setMostrarSelector(!mostrarSelector)} className="flex flex-col items-end text-right focus:outline-none active:opacity-70 transition-opacity">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-brand-text leading-none tracking-tight break-words" style={{ wordBreak: 'break-word' }}>
+              {loading ? 'Cargando...' : cantinaSeleccionada?.nombre_cantina || 'Sin cantina'}
+            </h1>
+            {!loading && cantinas.length > 1 && (
+              <div className="flex items-center gap-1 text-brand-secondary font-bold mt-2 bg-brand-secondary/10 px-3 py-1 rounded-full text-sm">
+                <span>Cambiar</span>
+                <svg className={`w-4 h-4 transition-transform ${mostrarSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+              </div>
+            )}
+          </button>
+
+          {mostrarSelector && (
+            <div className="absolute right-0 top-full mt-4 w-64 bg-brand-surface rounded-2xl shadow-2xl border border-brand-bg overflow-hidden animate-in fade-in slide-in-from-top-2 text-left z-30">
+              <div className="p-3 bg-brand-bg/50 text-xs font-bold text-brand-muted uppercase tracking-wider">Tus negocios</div>
+              {cantinas.map((cantina) => (
+                <div key={cantina.id_cantina} onClick={() => { setCantinaSeleccionada(cantina); setMostrarSelector(false); }} className={`p-4 cursor-pointer transition-colors flex items-center justify-between ${cantinaSeleccionada?.id_cantina === cantina.id_cantina ? 'bg-brand-primary/10 font-bold text-brand-primary' : 'text-brand-text hover:bg-brand-bg'}`}>
+                  {cantina.nombre_cantina}
+                  {cantinaSeleccionada?.id_cantina === cantina.id_cantina && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Lista de productos para seleccionar */}
-      <main className="flex-1 px-6 pb-32 space-y-4 overflow-y-auto">
-        {productosVenta.map((item) => (
-          <div key={item.id} className="bg-brand-surface p-4 rounded-3xl shadow-soft flex justify-between items-center">
-            <div>
-              <h3 className="font-semibold text-brand-text">{item.nombre}</h3>
-              <p className="font-medium text-brand-secondary mt-1">
-                ${item.precio} <span className="text-xs text-brand-muted ml-2">Stock: {item.stock}</span>
-              </p>
-            </div>
-            
-            {/* Botón de sumar al carrito */}
-            <button 
-              onClick={() => agregarAlCarrito(item)}
-              className="bg-brand-bg text-brand-primary w-10 h-10 rounded-2xl font-bold flex items-center justify-center shadow-inner active:scale-90 transition-transform"
-            >
-              +
-            </button>
+      {/* MAIN */}
+      <main className="flex-1 px-6 pb-40 space-y-4 overflow-y-auto z-0 relative">
+        <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider mb-2">Punto de Venta</h2>
+        
+        {mensajeExito && (
+          <div className="bg-green-100 text-green-700 p-4 rounded-2xl text-sm font-bold text-center shadow-md animate-in fade-in slide-in-from-top-4 mb-4">
+            {mensajeExito}
           </div>
-        ))}
+        )}
+
+        {loading ? (
+          <p className="text-center text-brand-muted mt-10 animate-pulse">Preparando sistema...</p>
+        ) : productos.length === 0 ? (
+          <div className="text-center mt-10 p-6 bg-brand-surface rounded-3xl border border-dashed border-brand-bg">
+            <p className="text-brand-muted font-medium">No hay productos en esta cantina.</p>
+          </div>
+        ) : (
+          productos.map((prod) => (
+            <div key={prod.id_producto} className="bg-brand-surface p-5 rounded-3xl shadow-soft flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-brand-text text-lg">{prod.nombre_producto}</h3>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-brand-primary font-bold">${prod.precio_venta}</span>
+                  {prod.cantidad_disp !== null && <span className="text-xs text-brand-muted font-medium">Stock: {prod.cantidad_disp}</span>}
+                </div>
+              </div>
+              
+              <button onClick={() => agregarAlCarrito(prod)} disabled={prod.cantidad_disp === 0} className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary font-bold text-xl active:scale-90 transition-transform shadow-inner disabled:opacity-40">
+                +
+              </button>
+            </div>
+          ))
+        )}
       </main>
 
-      {/* Barra inferior de Cobro Dinámica */}
-      <div className="fixed bottom-0 left-0 right-0 bg-brand-surface p-6 shadow-soft rounded-t-3xl flex justify-between items-center border-t border-brand-bg z-20">
-        <div>
-          <span className="text-xs text-brand-muted block">
-            Total a cobrar ({carrito.length} items)
-          </span>
-          <span className="text-2xl font-bold text-brand-text">${totalACobrar}</span>
+      {/* PANEL DESLIZABLE (CARRITO) */}
+      {isCartOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity" onClick={() => setIsCartOpen(false)} />}
+      <div className={`fixed bottom-0 left-0 w-full bg-brand-surface rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 flex flex-col transition-all duration-300 ease-in-out border-t border-brand-bg ${isCartOpen ? 'h-[75vh]' : 'h-auto'}`}>
+        <div onClick={() => { if (carrito.length > 0) setIsCartOpen(!isCartOpen) }} className="p-6 px-8 cursor-pointer flex flex-col items-center shrink-0">
+          <div className="w-12 h-1.5 bg-brand-bg rounded-full mb-5" />
+          <div className="flex justify-between items-center w-full max-w-lg mx-auto">
+            <div>
+              <p className="text-sm font-medium text-brand-muted">Total a cobrar ({totalItems} items)</p>
+              <p className="text-3xl font-extrabold text-brand-text tracking-tight">${totalCobrar}</p>
+            </div>
+            
+            <button 
+              onClick={(e) => {
+                e.stopPropagation(); 
+                if(carrito.length > 0) {
+                  setErrorPago(null); // Reseteamos errores previos
+                  setShowPaymentModal(true);
+                }
+              }}
+              disabled={carrito.length === 0}
+              className="bg-brand-secondary text-white font-bold px-8 py-4 rounded-full active:scale-95 transition-all shadow-lg disabled:opacity-50 disabled:shadow-none"
+            >
+              Cobrar
+            </button>
+          </div>
         </div>
-        <button 
-          onClick={handleCobrar}
-          className="bg-brand-primary text-white px-8 py-4 rounded-full font-bold shadow-md active:scale-95 transition-transform"
-        >
-          Cobrar
-        </button>
+
+        <div className={`flex-1 overflow-y-auto px-8 pb-8 transition-opacity duration-300 ${isCartOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-lg text-brand-text">Detalle del pedido</h3>
+            <button onClick={vaciarCarrito} className="text-sm font-bold text-red-500 bg-red-50 px-4 py-2 rounded-full active:scale-95">Vaciar</button>
+          </div>
+          <div className="space-y-4">
+            {carrito.map((item) => (
+              <div key={item.id_producto} className="flex justify-between items-center bg-brand-bg/50 p-4 rounded-2xl">
+                <div className="flex-1">
+                  <h4 className="font-bold text-brand-text">{item.nombre_producto}</h4>
+                  <p className="text-sm text-brand-primary font-bold">${item.precio_venta * item.cantidad}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => eliminarDelCarrito(item.id_producto)} className="text-brand-muted hover:text-red-500 p-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                  <div className="flex items-center bg-brand-surface rounded-full shadow-inner border border-brand-bg">
+                    <button onClick={() => restarDelCarrito(item.id_producto)} className="w-8 h-8 flex items-center justify-center font-bold text-brand-text active:bg-brand-bg rounded-l-full">-</button>
+                    <span className="w-8 text-center font-bold text-brand-primary">{item.cantidad}</span>
+                    <button onClick={() => agregarAlCarrito(item)} disabled={item.cantidad_disp !== null && item.cantidad >= item.cantidad_disp} className="w-8 h-8 flex items-center justify-center font-bold text-brand-text active:bg-brand-bg rounded-r-full disabled:opacity-30">+</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Componente del Menú Lateral */}
-      <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+      {/* MODAL DE MÉTODO DE PAGO */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-center flex flex-col items-center">
+            
+            <h3 className="text-2xl font-extrabold text-brand-text mb-2">Finalizar Venta</h3>
+            <p className="text-brand-muted mb-4">Total: <span className="font-bold text-brand-primary text-xl">${totalCobrar}</span></p>
+
+            {/* Mostramos errores devueltos por la RPC de Juampi */}
+            {errorPago && (
+              <div className="w-full bg-red-50 text-red-600 text-sm font-bold p-3 rounded-xl mb-4">
+                {errorPago}
+              </div>
+            )}
+
+            <div className="space-y-4 w-full">
+              <button onClick={() => confirmarCobro('efectivo')} disabled={isProcessing} className="w-full bg-brand-primary text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-md disabled:opacity-70">
+                {isProcessing ? 'Registrando...' : (
+                  <>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    Efectivo
+                  </>
+                )}
+              </button>
+
+              <button onClick={() => confirmarCobro('transferencia')} disabled={isProcessing} className="w-full bg-[#009EE3] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-md disabled:opacity-70">
+                {isProcessing ? 'Registrando...' : (
+                  <>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
+                    Transferencia
+                  </>
+                )}
+              </button>
+            </div>
+
+            <button onClick={() => setShowPaymentModal(false)} disabled={isProcessing} className="mt-6 text-brand-muted font-bold px-4 py-2 hover:text-brand-text active:scale-95">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   )

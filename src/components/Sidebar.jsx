@@ -48,7 +48,7 @@ export default function Sidebar({ isOpen, onClose }) {
             </button>
 
             <button 
-              onClick={() => { navigate('/productos'); onClose(); }}
+              onClick={() => { navigate('/inventario'); onClose(); }}
               className="w-full text-left p-4 rounded-2xl bg-brand-bg hover:bg-brand-primary/10 font-semibold text-brand-text transition-colors flex items-center gap-3"
             >
               <svg className="w-5 h-5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">

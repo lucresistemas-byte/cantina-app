@@ -2,24 +2,24 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
 import Dashboard from './pages/Dashboard'
-import Productos from './pages/Productos'
-import NuevoProducto from './pages/NuevoProducto'
 import GestionCantina from './pages/GestionCantina'
+import Inventario from './pages/Inventario'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ahora el Login es la página principal */}
-        <Route path="/" element={<Login />} /> 
-        <Route path="/registro" element={<Registro />} />
-        
-        {/* Movemos el Dashboard a su propia ruta */}
-        <Route path="/dashboard" element={<Dashboard />} /> 
-        <Route path="/productos" element={<Productos />} />
-        <Route path="/nuevo-producto" element={<NuevoProducto />} />
-        <Route path="/gestion" element={<GestionCantina />} />
-      </Routes>
+          {/* Ahora el Login es la página principal */}
+          <Route path="/" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
+
+          {/* Movemos el Dashboard a su propia ruta */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Nuestras dos vistas principales de administración */}
+          <Route path="/gestion" element={<GestionCantina />} />
+          <Route path="/inventario" element={<Inventario />} />
+        </Routes>
     </BrowserRouter>
   )
 }
