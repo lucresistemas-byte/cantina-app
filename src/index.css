@@ -4,6 +4,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    /* ACÁ ESTÁ LA MAGIA: Achica toda la app proporcionalmente. 
+       Si en 14px lo seguís viendo grande, bajalo a 13px o 12.5px */
+    font-size: 14px; 
+  }
+}
+
 :root {
   /* Fondo general crema/beige */
   --color-bg: #F8F6F0; 
@@ -20,9 +28,21 @@
   --color-text-muted: #808080;
 }
 
+/* Fondo para cuando se abre desde una PC */
 body {
-  background-color: var(--color-bg);
+  background-color: #E5E7EB; /* Un gris neutro que queda detrás del "celular" */
   color: var(--color-text-main);
-  /* Usaremos Poppins, que es la más parecida a la de la imagen */
   font-family: 'Poppins', sans-serif; 
+}
+
+/* Contenedor principal: Simula la pantalla del celular */
+#root {
+  max-width: 450px; /* Ancho máximo (tamaño celular grande) */
+  margin: 0 auto; /* Lo centra en la pantalla de la PC */
+  background-color: var(--color-bg); /* Tu color crema */
+  min-height: 100vh;
+  box-shadow: 0 0 25px rgba(0,0,0,0.15); /* Sombrita para que resalte */
+  
+  /* Este truco obliga a que los modales (fixed) no se escapen de este contenedor */
+  transform: translateX(0); 
 }
