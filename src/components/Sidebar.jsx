@@ -12,21 +12,21 @@ export default function Sidebar({ isOpen, onClose }) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-[70] flex">
       {/* Fondo oscuro transparente para cerrar al tocar afuera */}
       <div 
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm" 
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70]" 
         onClick={onClose}
       />
 
       {/* Contenedor del Menú (Aparece desde la izquierda) */}
-      <div className="relative w-72 bg-brand-surface h-full shadow-2xl flex flex-col p-6 z-10 justify-between animate-in slide-in-from-left duration-200">
-        
+      <div className="relative w-72 bg-brand-surface h-full shadow-2xl flex flex-col p-6 z-[80] justify-between animate-in slide-in-from-left duration-200">
+
         {/* Parte Superior: Título y Opciones */}
         <div>
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-xl font-bold text-brand-primary">Menú</h2>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 rounded-full bg-brand-bg text-brand-text active:scale-90 transition-transform"
             >
@@ -37,7 +37,7 @@ export default function Sidebar({ isOpen, onClose }) {
           </div>
 
           <nav className="space-y-3">
-            <button 
+            <button
               onClick={() => { navigate('/dashboard'); onClose(); }}
               className="w-full text-left p-4 rounded-2xl bg-brand-bg hover:bg-brand-primary/10 font-semibold text-brand-text transition-colors flex items-center gap-3"
             >
@@ -47,7 +47,7 @@ export default function Sidebar({ isOpen, onClose }) {
               Punto de Venta
             </button>
 
-            <button 
+            <button
               onClick={() => { navigate('/inventario'); onClose(); }}
               className="w-full text-left p-4 rounded-2xl bg-brand-bg hover:bg-brand-primary/10 font-semibold text-brand-text transition-colors flex items-center gap-3"
             >
@@ -57,7 +57,7 @@ export default function Sidebar({ isOpen, onClose }) {
               Inventario
             </button>
 
-            <button 
+            <button
               onClick={() => { navigate('/gestion'); onClose(); }}
               className="w-full text-left p-4 rounded-2xl bg-brand-bg hover:bg-brand-primary/10 font-semibold text-brand-text transition-colors flex items-center gap-3"
             >
@@ -66,12 +66,21 @@ export default function Sidebar({ isOpen, onClose }) {
               </svg>
               Gestión de Cantinas
             </button>
+            <button
+              onClick={() => { navigate('/historial'); onClose(); }}
+              className="w-full text-left p-4 rounded-2xl bg-brand-bg hover:bg-brand-primary/10 font-semibold text-brand-text transition-colors flex items-center gap-3"
+            >
+              <svg className="w-5 h-5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v2m3-2v2m3-2v2M5 10h14M5 10a2 2 0 110-4h14a2 2 0 110 4M5 10v6a2 2 0 002 2h10a2 2 0 002-2v-6" />
+              </svg>
+              Historial de Ventas
+            </button>
           </nav>
         </div>
 
         {/* Parte Inferior: Cerrar Sesión */}
         <div className="pt-4 border-t border-brand-bg">
-          <button 
+          <button
             onClick={handleCerrarSesion}
             className="w-full text-left p-4 rounded-2xl bg-red-50 hover:bg-red-100 font-semibold text-red-500 transition-colors flex items-center gap-3"
           >

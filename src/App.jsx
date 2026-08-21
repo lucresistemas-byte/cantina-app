@@ -4,6 +4,7 @@ import Registro from './pages/Registro'
 import Dashboard from './pages/Dashboard'
 import GestionCantina from './pages/GestionCantina'
 import Inventario from './pages/Inventario'
+import HistorialVentas from './pages/HistorialVentas'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           {/* Nuestras dos vistas principales de administración */}
           <Route path="/gestion" element={<GestionCantina />} />
           <Route path="/inventario" element={<Inventario />} />
+          <Route path="/historial" element={<HistorialVentas />} />
         </Routes>
     </BrowserRouter>
   )
