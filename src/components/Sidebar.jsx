@@ -40,7 +40,7 @@ export default function Sidebar({ isOpen, onClose }) {
       />
 
       {/* Contenedor del Menú (Aparece desde la izquierda) */}
-      <div className="relative w-72 bg-brand-surface h-full shadow-2xl flex flex-col p-6 z-[80] justify-between animate-in slide-in-from-left duration-200">
+      <div className="relative w-72 bg-brand-surface h-[100dvh] pb-16 shadow-2xl flex flex-col p-6 z-[80] justify-between animate-in slide-in-from-left duration-200">
         
         {/* Parte Superior: Título y Opciones */}
         <div>
