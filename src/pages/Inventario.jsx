@@ -19,11 +19,13 @@ export default function Inventario() {
   const [precioProducto, setPrecioProducto] = useState('')
   const [stockInicial, setStockInicial] = useState('')
 
-  // NUEVO: Modal y estados para Modificar Stock
-  const [showStockModal, setShowStockModal] = useState(false)
+  // NUEVO: Estados para el Modal Híbrido (Editar Info + Ajustar Stock)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [productoAEditar, setProductoAEditar] = useState(null)
-  const [cantidadAjuste, setCantidadAjuste] = useState('')
+  const [editNombre, setEditNombre] = useState('')
+  const [editPrecio, setEditPrecio] = useState('')
   const [tipoAjuste, setTipoAjuste] = useState('sumar') // 'sumar' o 'restar'
+  const [editStockAjuste, setEditStockAjuste] = useState('') // Cantidad a ajustar
 
   // UI
   const [loading, setLoading] = useState(false)
@@ -45,11 +47,7 @@ export default function Inventario() {
   const fetchMisCantinas = async () => {
     setLoading(true)
     const { data, error } = await supabase.rpc('obtener_mis_cantinas')
-    if (error) {
-      console.error('Error al traer cantinas:', error.message)
-    } else if (data) {
-      setCantinas(data)
-    }
+    if (!error && data) setCantinas(data)
     setLoading(false)
   }
 
@@ -57,7 +55,6 @@ export default function Inventario() {
     setLoading(true)
     const { data, error } = await supabase.rpc('obtener_productos_cantina', { p_id_cantina: idCantina })
     if (error) {
-      console.error('Error al obtener productos:', error.message)
       setError('No se pudo cargar el inventario.')
     } else if (data) {
       setProductos(data)
@@ -94,42 +91,65 @@ export default function Inventario() {
     setLoading(false)
   }
 
-  // NUEVA FUNCIÓN: Modificar el stock
-  const handleModificarStock = async (e) => {
+  // --- LÓGICA INTELIGENTE DE ACTUALIZACIÓN CON RPC DE JUAMPI ---
+  const handleEditarProducto = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     setExito(null)
 
-    let cant = parseInt(cantidadAjuste)
-    if (isNaN(cant) || cant <= 0) {
-      setError('Ingrese una cantidad válida mayor a 0.')
+    // Armamos el payload dinámico: solo enviamos lo que el usuario quiere cambiar
+    const payload = {
+      p_id_producto: productoAEditar.id_producto
+    }
+
+    // 1. Verificamos si cambió el nombre
+    if (editNombre.trim() !== productoAEditar.nombre_producto) {
+      payload.p_nombre_producto = editNombre.trim()
+    }
+
+    // 2. Verificamos si cambió el precio
+    if (parseFloat(editPrecio) !== productoAEditar.precio_venta) {
+      payload.p_precio_venta = parseFloat(editPrecio)
+    }
+
+    // 3. Verificamos si hay un ajuste de stock para hacer
+    let ajuste = parseInt(editStockAjuste)
+    if (!isNaN(ajuste) && ajuste > 0) {
+      payload.p_ajuste_stock = tipoAjuste === 'restar' ? -Math.abs(ajuste) : Math.abs(ajuste)
+    }
+
+    // Si el payload solo tiene el ID, significa que no tocó nada. Cerramos el modal.
+    if (Object.keys(payload).length === 1) {
+      setShowEditModal(false)
       setLoading(false)
       return
     }
 
-    // Si el usuario eligió "restar", pasamos el número a negativo para la RPC de Juampi
-    if (tipoAjuste === 'restar') {
-      cant = -Math.abs(cant)
-    }
-
-    const { data: nuevoStock, error: rpcError } = await supabase.rpc('modificar_stock', {
-      p_id_producto: productoAEditar.id_producto,
-      p_cantidad: cant
-    })
+    // Llamamos a la RPC de Juampi con los datos discernidos
+    const { error: rpcError } = await supabase.rpc('actualizar_producto', payload)
 
     if (rpcError) {
       console.error(rpcError)
-      setError(`Error al modificar stock: ${rpcError.message}`)
+      setError(`Error al actualizar: ${rpcError.message}`)
     } else {
-      setExito(`Stock de ${productoAEditar.nombre_producto} actualizado.`)
-      setShowStockModal(false)
-      setCantidadAjuste('')
-      setTipoAjuste('sumar')
-      fetchProductos(cantinaSeleccionada.id_cantina) // Recargamos para ver el número nuevo
+      setExito(`¡Producto actualizado correctamente!`)
+      setShowEditModal(false)
+      fetchProductos(cantinaSeleccionada.id_cantina)
       setTimeout(() => setExito(null), 3000)
     }
+    
     setLoading(false)
+  }
+
+  const abrirModalEdicion = (prod) => {
+    setProductoAEditar(prod)
+    setEditNombre(prod.nombre_producto)
+    setEditPrecio(prod.precio_venta.toString())
+    setTipoAjuste('sumar')
+    setEditStockAjuste('') // Inicia vacío, solo se llena si quiere modificar el stock
+    setShowEditModal(true)
+    setError(null)
   }
 
   const handleBack = () => {
@@ -153,7 +173,6 @@ export default function Inventario() {
     }
   }
 
-  // Verificamos si el usuario actual es admin o creador de la cantina seleccionada
   const esAdmin = cantinaSeleccionada?.rol === 'creador' || cantinaSeleccionada?.rol === 'administrador'
 
   return (
@@ -208,28 +227,22 @@ export default function Inventario() {
             ) : (
               productos.map((prod) => (
                 <div key={prod.id_producto} className="bg-brand-surface p-4 rounded-3xl shadow-sm flex justify-between items-center border border-brand-bg/50">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-brand-text text-lg">{prod.nombre_producto}</h3>
+                  <div className="flex-1 pr-4">
+                    <h3 className="font-bold text-brand-text text-lg leading-tight">{prod.nombre_producto}</h3>
                     <p className="text-brand-primary font-bold mt-1">${prod.precio_venta}</p>
                   </div>
                   
-                  <div className="text-right flex flex-col items-end gap-2">
+                  <div className="text-right flex flex-col items-end gap-2 shrink-0">
                     {renderBadgeStock(prod.cantidad_disp)}
                     
-                    {/* Botón Editar Stock (Solo para Admins y Creadores) */}
+                    {/* Botón Editar Producto (Solo Admins) */}
                     {esAdmin && (
                       <button 
-                        onClick={() => {
-                          setProductoAEditar(prod)
-                          setCantidadAjuste('')
-                          setTipoAjuste('sumar')
-                          setShowStockModal(true)
-                          setError(null)
-                        }}
-                        className="text-xs font-bold text-brand-secondary underline active:opacity-70 flex items-center gap-1"
+                        onClick={() => abrirModalEdicion(prod)}
+                        className="text-xs font-bold text-brand-secondary underline active:opacity-70 flex items-center gap-1 mt-1"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        Ajustar Stock
+                        Editar
                       </button>
                     )}
                   </div>
@@ -237,7 +250,6 @@ export default function Inventario() {
               ))
             )}
 
-            {/* FAB para agregar producto */}
             <button onClick={() => setShowModal(true)} className="fixed bottom-8 right-8 w-16 h-16 bg-brand-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-brand-secondary active:scale-90 transition-all z-20">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             </button>
@@ -257,17 +269,17 @@ export default function Inventario() {
             <form onSubmit={handleCrearProducto} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-brand-text mb-2">Nombre del producto</label>
-                <input type="text" value={nombreProducto} onChange={(e) => setNombreProducto(e.target.value)} className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none text-brand-text shadow-inner" required />
+                <input type="text" value={nombreProducto} onChange={(e) => setNombreProducto(e.target.value)} className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-primary text-brand-text shadow-inner" required />
               </div>
               <div>
                 <label className="block text-sm font-bold text-brand-text mb-2">Precio de venta ($)</label>
-                <input type="number" step="0.01" value={precioProducto} onChange={(e) => setPrecioProducto(e.target.value)} className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none text-brand-text shadow-inner" required />
+                <input type="number" step="0.01" value={precioProducto} onChange={(e) => setPrecioProducto(e.target.value)} className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-primary text-brand-text shadow-inner" required />
               </div>
               <div>
                 <label className="block text-sm font-bold text-brand-text mb-2">Stock inicial <span className="text-brand-muted font-normal">(Opcional)</span></label>
-                <input type="number" value={stockInicial} onChange={(e) => setStockInicial(e.target.value)} className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none text-brand-text shadow-inner" />
+                <input type="number" value={stockInicial} onChange={(e) => setStockInicial(e.target.value)} className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-primary text-brand-text shadow-inner" />
               </div>
-              <button type="submit" disabled={loading} className="w-full bg-brand-primary text-white font-bold py-4 rounded-full mt-4 disabled:opacity-70">
+              <button type="submit" disabled={loading} className="w-full bg-brand-primary text-white font-bold py-4 rounded-full mt-4 disabled:opacity-70 active:scale-95 transition-transform">
                 {loading ? 'Guardando...' : 'Crear Producto'}
               </button>
             </form>
@@ -275,64 +287,79 @@ export default function Inventario() {
         </div>
       )}
 
-      {/* NUEVO MODAL: Ajustar Stock */}
-      {showStockModal && productoAEditar && (
+      {/* NUEVO MODAL: Editar Producto y Ajustar Stock */}
+      {showEditModal && productoAEditar && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-brand-text">Ajustar Stock</h3>
-              <button onClick={() => setShowStockModal(false)} className="text-brand-muted p-1">
+          <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-brand-text">Modificar Producto</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-brand-muted p-1">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="mb-6">
-              <p className="font-bold text-brand-primary text-xl">{productoAEditar.nombre_producto}</p>
-              <p className="text-sm text-brand-muted">
-                Stock actual: <span className="font-bold text-brand-text">{productoAEditar.cantidad_disp !== null ? productoAEditar.cantidad_disp : 'Sin registro'}</span>
-              </p>
-            </div>
+            <form onSubmit={handleEditarProducto} className="space-y-5">
+              
+              {/* Sección Info Básica */}
+              <div className="space-y-4 pb-4 border-b border-brand-bg">
+                <div>
+                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">Nombre</label>
+                  <input 
+                    type="text" 
+                    value={editNombre} 
+                    onChange={(e) => setEditNombre(e.target.value)} 
+                    className="w-full p-3 rounded-xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner" 
+                    required 
+                  />
+                </div>
 
-            <form onSubmit={handleModificarStock} className="space-y-5">
-              {/* Selector tipo de ajuste (Pestañas) */}
-              <div className="flex bg-brand-bg p-1 rounded-2xl">
-                <button 
-                  type="button" 
-                  onClick={() => setTipoAjuste('sumar')}
-                  className={`flex-1 py-3 text-sm font-bold rounded-xl transition-colors ${tipoAjuste === 'sumar' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-brand-muted hover:text-brand-text'}`}
-                >
-                  Sumar (+)
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setTipoAjuste('restar')}
-                  className={`flex-1 py-3 text-sm font-bold rounded-xl transition-colors ${tipoAjuste === 'restar' ? 'bg-red-100 text-red-600 shadow-sm' : 'text-brand-muted hover:text-brand-text'}`}
-                >
-                  Restar (-)
-                </button>
+                <div>
+                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">Precio de venta ($)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={editPrecio} 
+                    onChange={(e) => setEditPrecio(e.target.value)} 
+                    className="w-full p-3 rounded-xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner" 
+                    required 
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-brand-text mb-2">Cantidad a {tipoAjuste}</label>
+              {/* Sección Ajuste de Stock con + y - */}
+              <div className="pt-2">
+                <div className="flex justify-between items-end mb-3">
+                  <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider">Ajustar Stock</label>
+                  <span className="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-1 rounded-full">
+                    Actual: {productoAEditar.cantidad_disp !== null ? productoAEditar.cantidad_disp : 'N/A'}
+                  </span>
+                </div>
+                
+                <div className="flex bg-brand-bg p-1 rounded-xl mb-3">
+                  <button type="button" onClick={() => setTipoAjuste('sumar')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${tipoAjuste === 'sumar' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-brand-muted hover:text-brand-text'}`}>
+                    Sumar (+)
+                  </button>
+                  <button type="button" onClick={() => setTipoAjuste('restar')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${tipoAjuste === 'restar' ? 'bg-red-100 text-red-600 shadow-sm' : 'text-brand-muted hover:text-brand-text'}`}>
+                    Restar (-)
+                  </button>
+                </div>
+
                 <input 
                   type="number" 
                   min="1"
-                  value={cantidadAjuste} 
-                  onChange={(e) => setCantidadAjuste(e.target.value)} 
-                  placeholder="Ej: 10" 
-                  className="w-full p-4 rounded-2xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-primary text-brand-text shadow-inner font-bold text-center text-lg" 
-                  required 
+                  value={editStockAjuste} 
+                  onChange={(e) => setEditStockAjuste(e.target.value)} 
+                  placeholder={`Cantidad a ${tipoAjuste}... (Opcional)`}
+                  className="w-full p-3 rounded-xl bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-secondary text-brand-text shadow-inner text-center font-bold" 
                 />
               </div>
 
               <button 
                 type="submit" 
                 disabled={loading} 
-                className={`w-full text-white font-bold py-4 rounded-full shadow-md disabled:opacity-70 transition-colors
-                  ${tipoAjuste === 'sumar' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
-                `}
+                className="w-full bg-brand-secondary text-white font-bold py-4 rounded-full shadow-md disabled:opacity-70 active:scale-95 transition-transform mt-2"
               >
-                {loading ? 'Procesando...' : `Confirmar y ${tipoAjuste}`}
+                {loading ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </form>
           </div>
