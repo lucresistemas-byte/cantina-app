@@ -284,7 +284,7 @@ export default function Dashboard() {
       <div className={`fixed bottom-0 left-0 w-full bg-brand-surface rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 flex flex-col transition-all duration-300 ease-in-out border-t border-brand-bg ${isCartOpen ? 'h-[75vh]' : 'h-auto'}`}>
         
         {/* Usamos pb-16 para empujar el texto hacia arriba y que no quede cortado */}
-        <div onClick={() => { if (carrito.length > 0) setIsCartOpen(!isCartOpen) }} className="pt-6 px-8 pb-16 cursor-pointer flex flex-col items-center shrink-0">
+        <div onClick={() => { if (carrito.length > 0) setIsCartOpen(!isCartOpen) }} className="pt-6 px-8 pb-20 cursor-pointer flex flex-col items-center shrink-0">
           <div className="w-12 h-1.5 bg-brand-bg rounded-full mb-5" />
           <div className="flex justify-between items-center w-full max-w-lg mx-auto">
             <div>
