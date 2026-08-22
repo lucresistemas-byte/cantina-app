@@ -4,20 +4,20 @@ import { supabase } from '../supabaseClient'
 
 export default function GestionCantina() {
   const navigate = useNavigate()
-  
+
   const [vista, setVista] = useState('lista')
-  
+
   // Datos
   const [cantinas, setCantinas] = useState([])
   const [cantinaSeleccionada, setCantinaSeleccionada] = useState(null)
   const [equipo, setEquipo] = useState([]) // NUEVO: Estado para la lista de usuarios
-  
+
   // Formularios
   const [nombreCantina, setNombreCantina] = useState('')
   const [userNameNuevo, setUserNameNuevo] = useState('')
   const [rol, setRol] = useState('empleado')
   const [showRolMenu, setShowRolMenu] = useState(false)
-  
+
   // NUEVO: Estado para controlar el Modal
   const [showModal, setShowModal] = useState(false)
 
@@ -62,9 +62,9 @@ export default function GestionCantina() {
   // NUEVA FUNCIÓN REAL: Traer el equipo de la cantina seleccionada
   const fetchEquipo = async (idCantina) => {
     setLoading(true)
-    
-    const { data, error } = await supabase.rpc('obtener_equipo_cantina', { 
-      p_id_cantina: idCantina 
+
+    const { data, error } = await supabase.rpc('obtener_equipo_cantina', {
+      p_id_cantina: idCantina
     })
 
     if (error) {
@@ -73,7 +73,7 @@ export default function GestionCantina() {
     } else if (data) {
       setEquipo(data)
     }
-    
+
     setLoading(false)
   }
 
@@ -108,14 +108,14 @@ export default function GestionCantina() {
     const { error: rpcError } = await supabase.rpc('agregar_empleado', {
       p_user_name: userNameNuevo,
       p_id_cantina: cantinaSeleccionada.id_cantina,
-      p_rol: rol 
+      p_rol: rol
     })
 
     if (rpcError) {
       setError(`Error: ${rpcError.message}`)
     } else {
       setExito(`¡Usuario vinculado correctamente!`)
-      setUserNameNuevo('') 
+      setUserNameNuevo('')
       setShowModal(false) // Cerramos el modal al tener éxito
       fetchEquipo(cantinaSeleccionada.id_cantina) // Recargamos la lista
     }
@@ -134,7 +134,7 @@ export default function GestionCantina() {
 
   return (
     <div className="h-[100dvh] w-full bg-brand-bg flex flex-col font-sans relative overflow-hidden">
-      
+
       <header className="flex items-center p-6 pt-10 gap-4 relative z-10 bg-brand-bg/90 backdrop-blur-md">
         <button onClick={handleBack} className="p-2 rounded-full bg-brand-surface shadow-soft text-brand-text active:scale-90 transition-transform">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -150,13 +150,13 @@ export default function GestionCantina() {
       </header>
 
       <main className="flex-1 px-6 pb-24 space-y-6 overflow-y-auto relative z-0">
-        
+
         {error && <div className="bg-red-100 text-red-600 p-4 rounded-2xl text-sm font-semibold text-center shadow-sm animate-in fade-in">{error}</div>}
         {exito && <div className="bg-green-100 text-green-700 p-4 rounded-2xl text-sm font-semibold text-center shadow-sm animate-in fade-in mb-4">{exito}</div>}
 
         {/* VISTA 1: Lista */}
         {vista === 'lista' && (
-           // ... (El código de la vista lista queda igual que antes)
+          // ... (El código de la vista lista queda igual que antes)
           <div className="space-y-4">
             {loading ? (
               <p className="text-center text-brand-muted mt-10 font-medium animate-pulse">Cargando negocios...</p>
@@ -184,7 +184,7 @@ export default function GestionCantina() {
 
         {/* VISTA 2: Crear */}
         {vista === 'crear' && (
-           // ... (El código de crear cantina queda igual)
+          // ... (El código de crear cantina queda igual)
           <form onSubmit={handleCrearCantina} className="bg-brand-surface p-6 rounded-3xl shadow-soft space-y-5 animate-in slide-in-from-right-4">
             <h2 className="text-lg font-bold text-brand-primary">Datos del negocio</h2>
             <div>
@@ -200,7 +200,7 @@ export default function GestionCantina() {
         {/* VISTA 3: Administrar (Con Lista y Modal) */}
         {vista === 'administrar' && cantinaSeleccionada && (
           <div className="space-y-6 animate-in slide-in-from-right-4">
-            
+
             {/* Header Azul */}
             <div className="bg-brand-primary text-white p-6 rounded-3xl shadow-md">
               <h2 className="text-xl font-bold">{cantinaSeleccionada.nombre_cantina}</h2>
@@ -210,7 +210,7 @@ export default function GestionCantina() {
             {/* Lista del Equipo */}
             <div className="space-y-3">
               <h3 className="font-bold text-brand-text px-2">Miembros del equipo</h3>
-              
+
               {loading ? (
                 <p className="text-brand-muted text-sm px-2 animate-pulse">Cargando equipo...</p>
               ) : equipo.length === 0 ? (
@@ -235,9 +235,9 @@ export default function GestionCantina() {
 
             {/* Botón Flotante para Agregar (Solo creador/admin) */}
             {(cantinaSeleccionada.mi_rol === 'creador' || cantinaSeleccionada.mi_rol === 'administrador') && (
-              <button 
+              <button
                 onClick={() => setShowModal(true)}
-                className="fixed bottom-8 right-8 w-16 h-16 bg-brand-secondary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
+                className="fixed bottom-36 right-8 w-16 h-16 bg-brand-secondary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
               >
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
               </button>
@@ -247,7 +247,7 @@ export default function GestionCantina() {
             {showModal && (
               <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
                 <div className="bg-brand-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95">
-                  
+
                   {/* Encabezado del modal */}
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
@@ -292,7 +292,7 @@ export default function GestionCantina() {
                 </div>
               </div>
             )}
-            
+
           </div>
         )}
 
