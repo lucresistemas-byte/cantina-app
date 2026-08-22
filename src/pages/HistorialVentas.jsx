@@ -35,6 +35,19 @@ export default function HistorialVentas() {
     setLoading(false)
   }
 
+  // Calculamos el total de todas las ventas mostradas
+  const totalVendido = ventas.reduce((total, venta) => {
+    const totalVenta = venta.detalles.reduce((acc, d) => acc + d.subtotal, 0)
+    return total + totalVenta
+  }, 0)
+
+  // Formateamos la fecha de hoy para que se vea linda (Ej: "viernes, 21 de agosto")
+  const fechaHoy = new Date().toLocaleDateString('es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  })
+
   return (
     <div className="min-h-screen bg-brand-bg pb-10">
       <header className="flex justify-between items-center p-6 pt-10">
@@ -58,6 +71,21 @@ export default function HistorialVentas() {
       </header>
 
       <main className="px-6 space-y-4">
+        
+        {/* TARJETA DISCRETA DE TOTAL RECAUDADO */}
+        {!loading && ventas.length > 0 && (
+          <div className="bg-brand-secondary p-5 rounded-3xl shadow-md mb-2 flex justify-between items-center text-white animate-in fade-in slide-in-from-top-4">
+            <div>
+              <p className="text-xs uppercase tracking-wider font-bold opacity-80 mb-0.5">Total Recaudado</p>
+              <p className="text-sm font-medium capitalize opacity-90">{fechaHoy}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-extrabold tracking-tight">${totalVendido}</p>
+            </div>
+          </div>
+        )}
+
+        {/* LISTA DE VENTAS */}
         {loading ? <p className="text-center text-brand-muted animate-pulse">Cargando ventas...</p> : 
           ventas.length === 0 ? <p className="text-center text-brand-muted">No hay ventas registradas.</p> :
           ventas.map((venta) => (
@@ -65,11 +93,11 @@ export default function HistorialVentas() {
               {/* Encabezado de la venta */}
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className="font-bold text-brand-text">Venta #{venta.id_venta}</p>
+                  <p className="text-xl font-extrabold text-brand-text">Venta #{venta.id_venta}</p> 
                   <p className="text-xs text-brand-text">{new Date(venta.fecha_hora).toLocaleString()}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-extrabold text-brand-primary text-lg">${venta.detalles.reduce((acc, d) => acc + d.subtotal, 0)}</p>
+                  <p className="font-extrabold text-brand-primary text-xl">${venta.detalles.reduce((acc, d) => acc + d.subtotal, 0)}</p>
                   <p className="text-xs font-bold uppercase text-brand-secondary">{venta.metodo_pago}</p>
                 </div>
               </div>
@@ -77,12 +105,12 @@ export default function HistorialVentas() {
               {/* Detalle incrustado directamente en la tarjeta */}
               <div className="border-t border-brand-bg pt-3 mt-3 space-y-2">
                 {venta.detalles.map((d) => (
-                  <div key={d.id_detalle} className="flex justify-between items-center text-base">
-                    <span className="text-brand-text font-medium flex gap-4">
-  <span>{d.cant_vendida}x</span>
-  <span>{d.nombre_producto}</span>
-</span>
-                    <span className="font-extrabold text-brand-text">${d.subtotal}</span>
+                  <div key={d.id_detalle} className="flex justify-between items-start text-base">
+                    <span className="text-brand-text font-medium flex gap-2">
+                      <span>{d.cant_vendida}x</span>
+                      <span>{d.nombre_producto}</span>
+                    </span>
+                    <span className="font-medium text-brand-text">${d.subtotal}</span>
                   </div>
                 ))}
               </div>
